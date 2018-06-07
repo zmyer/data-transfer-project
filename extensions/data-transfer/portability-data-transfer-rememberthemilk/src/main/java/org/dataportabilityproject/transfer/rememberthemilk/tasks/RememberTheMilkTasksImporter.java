@@ -42,6 +42,7 @@ import org.slf4j.LoggerFactory;
  * Importer for Tasks data type to Remember The Milk Service.
  */
 public class RememberTheMilkTasksImporter implements Importer<AuthData, TaskContainerResource> {
+
   private final JobStore jobstore;
   private final AppCredentials appCredentials;
   private final Logger logger = LoggerFactory.getLogger(RememberTheMilkTasksImporter.class);
@@ -97,6 +98,12 @@ public class RememberTheMilkTasksImporter implements Importer<AuthData, TaskCont
             // in the response contains only one task.
             // TODO: Address recurring events where some are completed and some are not
             service.completeTask(timeline, newList, addedTask.id, addedTask.tasks.get(0).id);
+          }
+          if (task.getDueTime() != null) {
+            // Same as above, assumes single task
+            // TODO: Address recurring events where they have different due dates!
+            service.setTaskDueDate(timeline, newList, addedTask.id, addedTask.tasks.get(0).id,
+                task.getDueTime());
           }
         }
       }

@@ -28,6 +28,8 @@ import com.google.api.client.repackaged.com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.net.URL;
+import java.time.Instant;
+import java.util.HashMap;
 import java.util.Map;
 import org.dataportabilityproject.transfer.rememberthemilk.model.tasks.GetListResponse;
 import org.dataportabilityproject.transfer.rememberthemilk.model.tasks.GetListsResponse;
@@ -107,6 +109,20 @@ class RememberTheMilkService {
     makeRequest(params, TaskUpdateResponse.class);
   }
 
+  public void setTaskDueDate(String timeline, String listId, int seriesId, int taskId, Instant dueTime)
+      throws IOException {
+    // TODO: how to distinguish between due dates and due times?  Do we need to?
+    // Default: every due time is just passed along as a due date
+    Map<String, String> params = new HashMap<>();
+    params.put("method", RememberTheMilkMethods.TASKS_DUE_DATE.getMethodName());
+    params.put("timeline", timeline);
+    params.put("list_id", listId);
+    params.put("taskseries_id", String.valueOf(seriesId));
+    params.put("task_id", String.valueOf(taskId));
+    params.put("due", dueTime.toString());
+    makeRequest(params, TaskUpdateResponse.class);
+  }
+
   public GetListResponse getList(String listId) throws IOException {
     Map<String, String> params =
         ImmutableMap.of(
@@ -149,6 +165,7 @@ class RememberTheMilkService {
     LISTS_ADD("rtm.lists.add"),
     TASKS_ADD("rtm.tasks.add"),
     TASKS_COMPLETE("rtm.tasks.complete"),
+    TASKS_DUE_DATE("rtm.tasks.setDueDate"),
     TASKS_GET_LIST("rtm.tasks.getList"),
     TIMELINES_CREATE("rtm.timelines.create");
 
