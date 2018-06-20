@@ -55,7 +55,7 @@ public class GoogleAuthDataGenerator implements AuthDataGenerator {
       ImmutableMap.<String, List<String>>builder()
           .put("calendar", ImmutableList.of(CalendarScopes.CALENDAR))
           .put("mail", ImmutableList.of(GmailScopes.GMAIL_MODIFY))
-          .put("photos", ImmutableList.of("https://picasaweb.google.com/data/"))
+          .put("photos", ImmutableList.of("https://www.googleapis.com/auth/photoslibrary"))
           .put("tasks", ImmutableList.of(TasksScopes.TASKS))
           .put("contacts", ImmutableList.of(PeopleServiceScopes.CONTACTS))
           .build();
