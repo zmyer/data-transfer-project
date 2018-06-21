@@ -17,10 +17,7 @@ package org.dataportabilityproject.datatransfer.google.photos;
 
 import com.google.api.client.auth.oauth2.Credential;
 import com.google.common.annotations.VisibleForTesting;
-import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.UUID;
 import org.dataportabilityproject.datatransfer.google.common.GoogleCredentialFactory;
 import org.dataportabilityproject.datatransfer.google.photos.model.GoogleAlbum;
@@ -40,32 +37,24 @@ import org.slf4j.LoggerFactory;
 public class GooglePhotosImporter
     implements Importer<TokensAndUrlAuthData, PhotosContainerResource> {
 
-  static final String ALBUM_POST_URL = "https://picasaweb.google.com/data/feed/api/user/default";
-  static final String PHOTO_POST_URL_FORMATTER =
-      "https://picasaweb.google.com/data/feed/api/user/default/albumid/%s";
-  // The default album to upload to if the photo is not associated with an album
-  static final String DEFAULT_ALBUM_ID = "default";
   static final Logger logger = LoggerFactory.getLogger(GooglePhotosImporter.class);
 
   private final GoogleCredentialFactory credentialFactory;
   private final JobStore jobStore;
-  private final ImageStreamProvider imageStreamProvider;
   private volatile GooglePhotosInterface photosInterface;
 
   public GooglePhotosImporter(GoogleCredentialFactory credentialFactory, JobStore jobStore) {
-    this(credentialFactory, jobStore, null, new ImageStreamProvider());
+    this(credentialFactory, jobStore, null);
   }
 
   @VisibleForTesting
   GooglePhotosImporter(
       GoogleCredentialFactory credentialFactory,
       JobStore jobStore,
-      GooglePhotosInterface photosInterface,
-      ImageStreamProvider imageStreamProvider) {
+      GooglePhotosInterface photosInterface) {
     this.credentialFactory = credentialFactory;
     this.jobStore = jobStore;
     this.photosInterface = photosInterface;
-    this.imageStreamProvider = imageStreamProvider;
   }
 
   @Override
@@ -97,7 +86,7 @@ public class GooglePhotosImporter
       photosMappings = new TempPhotosData(jobId);
       jobStore.create(jobId, createCacheKey(), photosMappings);
     }
-    photosMappings.addAlbumId(albumModel.getId(), uploadAlbum.getId());
+    photosMappings.addAlbumId(albumModel.getId(), resultAlbum.getId());
     jobStore.update(jobId, createCacheKey(), photosMappings);
   }
 
@@ -105,9 +94,14 @@ public class GooglePhotosImporter
   void importSinglePhoto(UUID jobId, TokensAndUrlAuthData authData, PhotoModel inputPhoto)
       throws IOException {
     // Upload media content
-
+    String uploadToken = getOrCreatePhotosInterface(authData)
+        .uploadMedia(inputPhoto.getFetchableUrl());
 
     // Create media item
+    String newAlbumId = jobStore.findData(jobId, createCacheKey(), TempPhotosData.class)
+        .lookupNewAlbumId(inputPhoto.getAlbumId());
+    getOrCreatePhotosInterface(authData)
+        .createNewMediaItem(uploadToken, newAlbumId, inputPhoto.getDescription());
   }
 
   private synchronized GooglePhotosInterface getOrCreatePhotosInterface(

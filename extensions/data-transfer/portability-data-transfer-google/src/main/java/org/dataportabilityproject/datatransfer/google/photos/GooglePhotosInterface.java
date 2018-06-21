@@ -24,6 +24,7 @@ import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
 import com.google.api.client.http.HttpTransport;
+import com.google.api.client.http.InputStreamContent;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.http.json.JsonHttpContent;
 import com.google.api.client.json.jackson2.JacksonFactory;
@@ -31,7 +32,10 @@ import com.google.api.client.util.ArrayMap;
 import com.google.common.base.Charsets;
 import com.google.common.io.CharStreams;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -40,14 +44,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.dataportabilityproject.datatransfer.google.photos.model.AlbumListResponse;
-<<<<<<< HEAD
 import org.dataportabilityproject.datatransfer.google.photos.model.GoogleAlbum;
+import org.dataportabilityproject.datatransfer.google.photos.model.MediaItemCreationResponse.NewMediaItemResult;
 import org.dataportabilityproject.datatransfer.google.photos.model.MediaItemSearchResponse;
-import org.dataportabilityproject.transfer.ImageStreamProvider;
-=======
-import org.dataportabilityproject.datatransfer.google.photos.model.MediaItemSearchResponse;
-import org.dataportabilityproject.types.transfer.auth.TokensAndUrlAuthData;
->>>>>>> 5d7b55ee1a1d90d598ae85bd8b9eb87f72c63443
+import org.dataportabilityproject.datatransfer.google.photos.model.MediaUploadRequest;
+import org.dataportabilityproject.datatransfer.google.photos.model.MediaUploadRequest.NewMediaItem;
+import org.dataportabilityproject.datatransfer.google.photos.model.MediaUploadRequest.NewMediaItem.SimpleMediaItem;
 
 public class GooglePhotosInterface {
 
@@ -86,18 +88,27 @@ public class GooglePhotosInterface {
         MediaItemSearchResponse.class);
   }
 
-<<<<<<< HEAD
   public GoogleAlbum createAlbum(GoogleAlbum album) throws IOException {
     HttpContent content = new JsonHttpContent(new JacksonFactory(), album);
     return makePostRequest(BASE_URL + "albums", Optional.empty(), content, GoogleAlbum.class);
   }
 
-  public String uploadMedia(String mediaUrl) {
-    return null;
+  public String uploadMedia(String sourceUrl) throws IOException {
+    InputStreamContent content = new InputStreamContent(null, getImageAsStream(sourceUrl));
+    return makePostRequest(BASE_URL + "uploads", Optional.empty(), content, String.class);
   }
 
-=======
->>>>>>> 5d7b55ee1a1d90d598ae85bd8b9eb87f72c63443
+  public NewMediaItemResult createNewMediaItem(String uploadToken, String albumId,
+      String description) throws IOException {
+    SimpleMediaItem simpleMediaItem = new SimpleMediaItem(uploadToken);
+    NewMediaItem newMediaItem = new NewMediaItem(description, simpleMediaItem);
+    MediaUploadRequest mediaUploadRequest = new MediaUploadRequest(albumId,
+        new NewMediaItem[]{newMediaItem});
+    HttpContent content = new JsonHttpContent(new JacksonFactory(), mediaUploadRequest);
+    return makePostRequest(BASE_URL + "mediaItems:batchCreate", Optional.empty(), content,
+        NewMediaItemResult.class);
+  }
+
   private <T> T makeGetRequest(String url, Optional<Map<String, String>> parameters, Class<T> clazz)
       throws IOException {
     HttpRequestFactory requestFactory = httpTransport.createRequestFactory();
@@ -153,5 +164,12 @@ public class GooglePhotosInterface {
     }
 
     return String.join("&", paramStrings);
+  }
+
+  private InputStream getImageAsStream(String urlStr) throws IOException {
+    URL url = new URL(urlStr);
+    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+    conn.connect();
+    return conn.getInputStream();
   }
 }

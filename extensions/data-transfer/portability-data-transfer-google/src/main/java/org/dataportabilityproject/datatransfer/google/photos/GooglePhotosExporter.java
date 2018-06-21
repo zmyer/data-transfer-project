@@ -64,6 +64,7 @@ public class GooglePhotosExporter
   @Override
   public ExportResult<PhotosContainerResource> export(
       UUID jobId, TokensAndUrlAuthData authData, Optional<ExportInformation> exportInformation) {
+    // NOTE: This currently does not support transfer of photos not in albums!
     if (!exportInformation.isPresent()) {
       return exportAlbums(authData, Optional.empty());
     } else {
