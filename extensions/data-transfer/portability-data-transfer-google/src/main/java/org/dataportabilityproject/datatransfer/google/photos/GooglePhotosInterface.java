@@ -40,9 +40,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.dataportabilityproject.datatransfer.google.photos.model.AlbumListResponse;
+<<<<<<< HEAD
 import org.dataportabilityproject.datatransfer.google.photos.model.GoogleAlbum;
 import org.dataportabilityproject.datatransfer.google.photos.model.MediaItemSearchResponse;
 import org.dataportabilityproject.transfer.ImageStreamProvider;
+=======
+import org.dataportabilityproject.datatransfer.google.photos.model.MediaItemSearchResponse;
+import org.dataportabilityproject.types.transfer.auth.TokensAndUrlAuthData;
+>>>>>>> 5d7b55ee1a1d90d598ae85bd8b9eb87f72c63443
 
 public class GooglePhotosInterface {
 
@@ -81,6 +86,7 @@ public class GooglePhotosInterface {
         MediaItemSearchResponse.class);
   }
 
+<<<<<<< HEAD
   public GoogleAlbum createAlbum(GoogleAlbum album) throws IOException {
     HttpContent content = new JsonHttpContent(new JacksonFactory(), album);
     return makePostRequest(BASE_URL + "albums", Optional.empty(), content, GoogleAlbum.class);
@@ -90,6 +96,8 @@ public class GooglePhotosInterface {
     return null;
   }
 
+=======
+>>>>>>> 5d7b55ee1a1d90d598ae85bd8b9eb87f72c63443
   private <T> T makeGetRequest(String url, Optional<Map<String, String>> parameters, Class<T> clazz)
       throws IOException {
     HttpRequestFactory requestFactory = httpTransport.createRequestFactory();
