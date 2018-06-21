@@ -77,7 +77,7 @@ public class GooglePhotosImporter
   void importSingleAlbum(UUID jobId, TokensAndUrlAuthData authData, PhotoAlbum albumModel)
       throws IOException {
     GoogleAlbum uploadAlbum = new GoogleAlbum();
-    uploadAlbum.setTitle(albumModel.getName()); // per spec, only title should be uploaded
+    uploadAlbum.setTitle("copy of " + albumModel.getName()); // per spec, only title should be uploaded
 
     GoogleAlbum resultAlbum = getOrCreatePhotosInterface(authData).createAlbum(uploadAlbum);
     TempPhotosData photosMappings = jobStore
@@ -119,7 +119,8 @@ public class GooglePhotosImporter
    * Key for cache of album mappings. TODO: Add a method parameter for a {@code key} for fine
    * grained objects.
    */
-  private String createCacheKey() {
+  @VisibleForTesting
+  static String createCacheKey() {
     // TODO: store objects containing individual mappings instead of single object containing all mappings
     return "tempPhotoData";
   }

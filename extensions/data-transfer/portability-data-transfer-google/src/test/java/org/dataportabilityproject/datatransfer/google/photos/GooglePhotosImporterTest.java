@@ -15,80 +15,97 @@
  */
 package org.dataportabilityproject.datatransfer.google.photos;
 
-import com.google.gdata.client.photos.PicasawebService;
-import com.google.gdata.data.photos.PhotoEntry;
+import static com.google.common.truth.Truth.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.google.gdata.util.ServiceException;
-import org.dataportabilityproject.datatransfer.google.common.GoogleStaticObjects;
-import org.dataportabilityproject.transfer.ImageStreamProvider;
+import java.io.IOException;
+import java.util.UUID;
+import org.dataportabilityproject.cloud.local.LocalJobStore;
+import org.dataportabilityproject.datatransfer.google.common.GoogleCredentialFactory;
+import org.dataportabilityproject.datatransfer.google.photos.model.GoogleAlbum;
+import org.dataportabilityproject.datatransfer.google.photos.model.GoogleMediaItem;
+import org.dataportabilityproject.datatransfer.google.photos.model.MediaItemCreationResponse.NewMediaItemResult;
+import org.dataportabilityproject.datatransfer.google.photos.model.MediaItemCreationResponse.NewMediaItemResult.Status;
+import org.dataportabilityproject.spi.cloud.storage.JobStore;
+import org.dataportabilityproject.spi.transfer.types.TempPhotosData;
+import org.dataportabilityproject.types.transfer.models.photos.PhotoAlbum;
 import org.dataportabilityproject.types.transfer.models.photos.PhotoModel;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Matchers;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import java.util.UUID;
-
-import static com.google.common.truth.Truth.assertThat;
-import static org.dataportabilityproject.datatransfer.google.photos.GooglePhotosImporter.DEFAULT_ALBUM_ID;
-import static org.dataportabilityproject.datatransfer.google.photos.GooglePhotosImporter.PHOTO_POST_URL_FORMATTER;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 public class GooglePhotosImporterTest {
 
-  private String PHOTO_TITLE = "Model photo title";
-  private String IMG_URI = "image uri";
-  private String JPEG_MEDIA_TYPE = "image/jpeg";
+  private final String IMG_URI = "image uri";
+  private final String JPEG_MEDIA_TYPE = "image/jpeg";
+  private final String UPLOAD_TOKEN = "upload token";
+  private final String MODEL_ALBUM_ID = "model_album_id";
+  private final String GOOGLE_ALBUM_ID = "google_album_id";
 
-  private UUID uuid = UUID.randomUUID();
+  private final UUID uuid = UUID.randomUUID();
 
   private GooglePhotosImporter googlePhotosImporter;
-  private PicasawebService photoService;
-  private ImageStreamProvider imageStreamProvider;
-  private InputStream inputStream;
+
+  private GoogleCredentialFactory credentialFactory;
+  private GooglePhotosInterface photosInterface;
+  private JobStore jobStore;
 
   @Before
   public void setUp() throws IOException, ServiceException {
-    photoService = mock(PicasawebService.class);
-
-    inputStream = mock(InputStream.class);
-    imageStreamProvider = mock(ImageStreamProvider.class);
-    when(imageStreamProvider.get(Matchers.anyString())).thenReturn(inputStream);
-
-    googlePhotosImporter = new GooglePhotosImporter(null, null, photoService, imageStreamProvider);
+    photosInterface = mock(GooglePhotosInterface.class);
+    jobStore = new LocalJobStore();
   }
 
   @Test
-  public void exportPhoto() throws IOException, ServiceException {
-    // Set up
-    String description = "description";
-    PhotoModel photoModel = new PhotoModel(PHOTO_TITLE, IMG_URI, description, JPEG_MEDIA_TYPE, null,
-        "album_id");
+  public void importAlbumAndPhoto() throws IOException, ServiceException {
+    // Set up album model
+    String albumName = "albumName";
+    String albumDescription = "albumDescription";
+    PhotoAlbum albumModel = new PhotoAlbum(MODEL_ALBUM_ID, albumName, albumDescription);
+    // Set up response item
+    GoogleAlbum responseAlbum = new GoogleAlbum();
+    responseAlbum.setTitle("copy of " + albumName);
+    responseAlbum.setId(GOOGLE_ALBUM_ID);
+    // Set up mock
+    when(photosInterface.createAlbum(Matchers.any(GoogleAlbum.class))).thenReturn(responseAlbum);
+
+    // Set up photo
+    String photoDescription = "photoDescription";
+    PhotoModel photoModel = new PhotoModel("", IMG_URI, photoDescription, JPEG_MEDIA_TYPE, null,
+        MODEL_ALBUM_ID);
+    // Set up response item
+    Status status = new Status("0");
+    GoogleMediaItem responseMediaItem = new GoogleMediaItem();
+    responseMediaItem.setDescription(photoDescription);
+    NewMediaItemResult newMediaItemResult = new NewMediaItemResult(UPLOAD_TOKEN, status,
+        responseMediaItem);
+    // Set up mocks
+    when(photosInterface.uploadMedia(IMG_URI)).thenReturn(UPLOAD_TOKEN);
+    when(photosInterface.createNewMediaItem(UPLOAD_TOKEN, GOOGLE_ALBUM_ID, photoDescription))
+        .thenReturn(newMediaItemResult);
 
     // Run test
-    googlePhotosImporter.importSinglePhoto(null, photoModel);
+    googlePhotosImporter = new GooglePhotosImporter(null, jobStore, photosInterface);
+    googlePhotosImporter.importSingleAlbum(uuid, null, albumModel);
+    googlePhotosImporter.importSinglePhoto(uuid, null, photoModel);
 
     // Check results
     // Verify correct methods were called
-    verify(imageStreamProvider).get(IMG_URI);
+    ArgumentCaptor<GoogleAlbum> albumArgumentCaptor = ArgumentCaptor.forClass(GoogleAlbum.class);
+    verify(photosInterface).createAlbum(albumArgumentCaptor.capture());
+    verify(photosInterface).uploadMedia(IMG_URI);
+    verify(photosInterface).createNewMediaItem(UPLOAD_TOKEN, GOOGLE_ALBUM_ID, photoDescription);
 
-    URL expectedUploadURL = new URL(String.format(PHOTO_POST_URL_FORMATTER, DEFAULT_ALBUM_ID));
-    ArgumentCaptor<PhotoEntry> photoEntryArgumentCaptor = ArgumentCaptor.forClass(PhotoEntry.class);
-    verify(photoService).insert(eq(expectedUploadURL), photoEntryArgumentCaptor.capture());
+    // Check uploaded info
+    GoogleAlbum uploadAlbum = albumArgumentCaptor.getValue();
+    assertThat(uploadAlbum.getTitle()).isEqualTo("copy of " + albumName);
 
-    // Check that uploaded photo entry is as expected
-    assertThat(photoEntryArgumentCaptor.getValue().getTitle().getPlainText())
-        .isEqualTo("copy of " + PHOTO_TITLE);
-    assertThat(photoEntryArgumentCaptor.getValue().getDescription().getPlainText())
-        .isEqualTo(description);
-    assertThat(photoEntryArgumentCaptor.getValue().getClient())
-        .isEqualTo(GoogleStaticObjects.APP_NAME);
-    assertThat(photoEntryArgumentCaptor.getValue().getMediaSource().getContentType())
-        .isEqualTo(JPEG_MEDIA_TYPE);
+    // Check jobStore contents
+    assertThat(jobStore.findData(uuid, GooglePhotosImporter.createCacheKey(), TempPhotosData.class)
+        .lookupNewAlbumId(MODEL_ALBUM_ID)).isEqualTo(GOOGLE_ALBUM_ID);
   }
 }

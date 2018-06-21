@@ -16,26 +16,37 @@
 
 package org.dataportabilityproject.datatransfer.google.photos.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class MediaItemCreationResponse {
-  @JsonProperty("newMediaItemResult")
+
   private NewMediaItemResult[] newMediaItemResults;
+
+  @JsonCreator
+  public MediaItemCreationResponse(
+      @JsonProperty("newMediaItemResult") NewMediaItemResult[] newMediaItemResults) {
+    this.newMediaItemResults = newMediaItemResults;
+  }
 
   public NewMediaItemResult[] getNewMediaItemResults() {
     return newMediaItemResults;
   }
 
-  public class NewMediaItemResult {
+  public static class NewMediaItemResult {
 
-    @JsonProperty("uploadToken")
     private String uploadToken;
-
-    @JsonProperty("status")
     private Status status;
-
-    @JsonProperty("mediaItem")
     private GoogleMediaItem mediaItem;
+
+    @JsonCreator
+    public NewMediaItemResult(@JsonProperty("uploadToken") String uploadToken,
+        @JsonProperty("status") Status status,
+        @JsonProperty("mediaItem") GoogleMediaItem mediaItem) {
+      this.uploadToken = uploadToken;
+      this.status = status;
+      this.mediaItem = mediaItem;
+    }
 
     public String getUploadToken() {
       return uploadToken;
@@ -49,10 +60,14 @@ public class MediaItemCreationResponse {
       return mediaItem;
     }
 
-    public class Status {
+    public static class Status {
 
-      @JsonProperty("code")
       private String code;
+
+      @JsonCreator
+      public Status(@JsonProperty("code") String code) {
+        this.code = code;
+      }
 
       public String getCode() {
         return code;

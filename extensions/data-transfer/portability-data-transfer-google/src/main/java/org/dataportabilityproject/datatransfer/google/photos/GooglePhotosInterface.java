@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpContent;
+import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
@@ -30,6 +31,7 @@ import com.google.api.client.http.json.JsonHttpContent;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.client.util.ArrayMap;
 import com.google.common.base.Charsets;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.io.CharStreams;
 import java.io.IOException;
 import java.io.InputStream;
@@ -45,6 +47,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import org.dataportabilityproject.datatransfer.google.photos.model.AlbumListResponse;
 import org.dataportabilityproject.datatransfer.google.photos.model.GoogleAlbum;
+import org.dataportabilityproject.datatransfer.google.photos.model.MediaItemCreationResponse;
 import org.dataportabilityproject.datatransfer.google.photos.model.MediaItemCreationResponse.NewMediaItemResult;
 import org.dataportabilityproject.datatransfer.google.photos.model.MediaItemSearchResponse;
 import org.dataportabilityproject.datatransfer.google.photos.model.MediaUploadRequest;
@@ -56,6 +59,8 @@ public class GooglePhotosInterface {
   private static final String BASE_URL = "https://photoslibrary.googleapis.com/v1/";
   private static final int ALBUM_PAGE_SIZE = 20; // TODO
   private static final int MEDIA_PAGE_SIZE = 100; // TODO
+  private static final String JSON_TYPE = "application/json";
+  private static final String OCTET_STREAMING_TYPE = "application/octet-stream";
 
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final HttpTransport httpTransport = new NetHttpTransport();
@@ -84,18 +89,21 @@ public class GooglePhotosInterface {
       params.put("pageToken", pageToken.get());
     }
     HttpContent content = new JsonHttpContent(new JacksonFactory(), params);
-    return makePostRequest(BASE_URL + "mediaItems:search", Optional.empty(), content,
+    return makePostRequest(BASE_URL + "mediaItems:search", Optional.empty(), content, JSON_TYPE,
         MediaItemSearchResponse.class);
   }
 
   public GoogleAlbum createAlbum(GoogleAlbum album) throws IOException {
     HttpContent content = new JsonHttpContent(new JacksonFactory(), album);
-    return makePostRequest(BASE_URL + "albums", Optional.empty(), content, GoogleAlbum.class);
+    return makePostRequest(BASE_URL + "albums", Optional.empty(), content, JSON_TYPE,
+        GoogleAlbum.class);
   }
 
   public String uploadMedia(String sourceUrl) throws IOException {
     InputStreamContent content = new InputStreamContent(null, getImageAsStream(sourceUrl));
-    return makePostRequest(BASE_URL + "uploads", Optional.empty(), content, String.class);
+    Map<String, String> params = ImmutableMap.of("Content-Type", "application/octet-stream");
+    return makePostRequest(BASE_URL + "uploads", Optional.empty(), content, OCTET_STREAMING_TYPE,
+        String.class);
   }
 
   public NewMediaItemResult createNewMediaItem(String uploadToken, String albumId,
@@ -106,7 +114,8 @@ public class GooglePhotosInterface {
         new NewMediaItem[]{newMediaItem});
     HttpContent content = new JsonHttpContent(new JacksonFactory(), mediaUploadRequest);
     return makePostRequest(BASE_URL + "mediaItems:batchCreate", Optional.empty(), content,
-        NewMediaItemResult.class);
+        JSON_TYPE, MediaItemCreationResponse.class)
+        .getNewMediaItemResults()[0];
   }
 
   private <T> T makeGetRequest(String url, Optional<Map<String, String>> parameters, Class<T> clazz)
@@ -126,12 +135,15 @@ public class GooglePhotosInterface {
   }
 
   private <T> T makePostRequest(String url, Optional<Map<String, String>> parameters,
-      HttpContent httpContent, Class<T> clazz)
+      HttpContent httpContent, String contentType, Class<T> clazz)
       throws IOException {
     HttpRequestFactory requestFactory = httpTransport.createRequestFactory();
     HttpRequest getRequest = requestFactory
         .buildPostRequest(new GenericUrl(url + "?" + generateParamsString(parameters)),
             httpContent);
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(contentType);
+    getRequest.setHeaders(headers);
     HttpResponse response = getRequest.execute();
     int statusCode = response.getStatusCode();
     if (statusCode != 200) {
