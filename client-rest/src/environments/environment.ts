@@ -4,7 +4,6 @@
 
 export const environment = {
     production: false,
-    apiUrl: 'https://localhost:3000/api',
-    apiPostUrl: 'https://localhost:8080'
-
+    encryptionScheme: "jwe", // supported values are "jwe" and "cleartext" which must correspond to the schemes supported by the server
+    apiBaseUrl: 'https://localhost:3000'
 };

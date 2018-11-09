@@ -21,7 +21,6 @@ import static org.junit.Assert.assertNull;
 import com.google.api.client.http.HttpTransport;
 import org.datatransferproject.spi.api.types.AuthFlowConfiguration;
 import org.datatransferproject.types.transfer.auth.AppCredentials;
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -40,11 +39,11 @@ public class InstagramAuthDataGeneratorTest {
 
     AuthFlowConfiguration config =
         generator.generateConfiguration("http://localhost/test", "54321");
-    assertThat(config.getUrl())
+    assertThat(config.getAuthUrl())
         .isEqualTo(
             "https://api.instagram.com/oauth/authorize"
                 + "?client_id=dummy-id"
-                + "&redirect_uri=http://localhost/test/callback/instagram"
+                + "&redirect_uri=http://localhost/test"
                 + "&response_type=code"
                 + "&scope=basic"
                 + "&state=NTQzMjE%3D");

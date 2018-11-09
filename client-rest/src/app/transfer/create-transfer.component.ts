@@ -4,9 +4,10 @@ import {FormBuilder, FormGroup, Validators} from "@angular/forms";
 import {ProgressService} from "../progress";
 import {TransferService} from "./transfer.service";
 import {transportError} from "../transport";
+import {environment} from "../../environments/environment";
 
 /**
- * Creates a transfer request on the API server.
+ * Creates a transfer job request on the API server.
  * TODO: Add form validation
  */
 @Component({
@@ -45,14 +46,17 @@ export class CreateTransferComponent implements OnInit {
 
     next() {
         this.progressService.servicesSelected(this.servicesForm.get("exportService").value, this.servicesForm.get("importService").value);
-        this.transferService.createTransfer({
-            source: this.progressService.exportService(),
-            destination: this.progressService.importService(),
-            transferDataType: this.progressService.dataType()
-        }).subscribe(transfer => {
+        this.transferService.createTransferJob({
+            exportService: this.progressService.exportService(),
+            importService: this.progressService.importService(),
+            exportCallbackUrl: `${environment.apiBaseUrl}/callback/${this.progressService.exportService().toLowerCase()}`,
+            importCallbackUrl: `${environment.apiBaseUrl}/callback/${this.progressService.importService().toLowerCase()}`,
+            dataType: this.progressService.dataType(),
+            encryptionScheme: environment.encryptionScheme
+        }).subscribe(transferJob => {
             // redirect to OAuth service
-            this.progressService.createComplete(transfer.id);
-            window.location.href = transfer.link;
+            this.progressService.createComplete(transferJob.id, transferJob.exportUrl, transferJob.importUrl);
+            window.location.href = transferJob.exportUrl;
         }, transportError);
     }
 

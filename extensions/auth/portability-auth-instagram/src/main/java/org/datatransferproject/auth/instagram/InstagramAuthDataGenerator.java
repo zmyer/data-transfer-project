@@ -15,11 +15,7 @@
  */
 package org.datatransferproject.auth.instagram;
 
-import com.google.api.client.auth.oauth2.AuthorizationCodeFlow;
-import com.google.api.client.auth.oauth2.BearerToken;
-import com.google.api.client.auth.oauth2.ClientParametersAuthentication;
-import com.google.api.client.auth.oauth2.Credential;
-import com.google.api.client.auth.oauth2.TokenResponse;
+import com.google.api.client.auth.oauth2.*;
 import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.jackson2.JacksonFactory;
@@ -28,17 +24,26 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.BaseEncoding;
-import java.io.IOException;
-import java.util.List;
 import org.datatransferproject.spi.api.auth.AuthDataGenerator;
-import org.datatransferproject.spi.api.auth.AuthServiceProviderRegistry.AuthMode;
 import org.datatransferproject.spi.api.types.AuthFlowConfiguration;
 import org.datatransferproject.types.transfer.auth.AppCredentials;
 import org.datatransferproject.types.transfer.auth.AuthData;
 import org.datatransferproject.types.transfer.auth.TokensAndUrlAuthData;
 
+import java.io.IOException;
+import java.util.List;
+
+import static org.datatransferproject.types.common.PortabilityCommon.AuthProtocol;
+import static org.datatransferproject.types.common.PortabilityCommon.AuthProtocol.OAUTH_2;
+
+/*
+ * {@link AuthDataGenerator} to obtain auth credentials for the Instagram API.
+ *
+ * Note: this is in the process of being deprecated in favor of OAuth2DataGenerator.
+ * <p>TODO(#553): Remove code/token exchange as this will be handled by frontends.
+ */
 public class InstagramAuthDataGenerator implements AuthDataGenerator {
-  private static final String CALLBACK_PATH = "/callback/instagram";
+  private static final AuthProtocol AUTHORIZATION_PROTOCOL = OAUTH_2;
   private static final String AUTHORIZATION_SERVER_URL =
       "https://api.instagram.com/oauth/authorize";
   private static final String TOKEN_SERVER_URL = "https://api.instagram.com/oauth/access_token";
@@ -52,21 +57,21 @@ public class InstagramAuthDataGenerator implements AuthDataGenerator {
   }
 
   @Override
-  public AuthFlowConfiguration generateConfiguration(String callbackBaseUrl, String id) {
+  public AuthFlowConfiguration generateConfiguration(String callbackUrl, String id) {
     // TODO: move to common location
     String encodedJobId = BaseEncoding.base64Url().encode(id.getBytes(Charsets.UTF_8));
     String url =
         createFlow()
             .newAuthorizationUrl()
-            .setRedirectUri(callbackBaseUrl + CALLBACK_PATH)
+            .setRedirectUri(callbackUrl)
             .setState(encodedJobId)
             .build();
-    return new AuthFlowConfiguration(url);
+    return new AuthFlowConfiguration(url, AUTHORIZATION_PROTOCOL, getTokenUrl());
   }
 
   @Override
   public AuthData generateAuthData(
-      String callbackBaseUrl, String authCode, String id, AuthData initialAuthData, String extra) {
+      String callbackUrl, String authCode, String id, AuthData initialAuthData, String extra) {
     Preconditions.checkArgument(
         Strings.isNullOrEmpty(extra), "Extra data not expected for Instagram oauth flow");
     Preconditions.checkArgument(
@@ -76,7 +81,7 @@ public class InstagramAuthDataGenerator implements AuthDataGenerator {
     try {
       response =
           flow.newTokenRequest(authCode)
-              .setRedirectUri(callbackBaseUrl + CALLBACK_PATH) // TODO(chuy): Parameterize
+              .setRedirectUri(callbackUrl)
               .execute();
     } catch (IOException e) {
       throw new RuntimeException("Error calling AuthorizationCodeFlow.execute ", e);

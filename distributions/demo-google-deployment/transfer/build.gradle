@@ -30,7 +30,7 @@ import com.bmuschko.gradle.docker.tasks.image.Dockerfile
  * <ul>To run locally:
  *  <li>./gradlew clean -PcloudType=google -PgcpProject=<your-project-name> \
  *      :distributions:demo-google-deployment:transfer:dockerizeLocal
- *  <li>docker run --rm -p 8082:8082 -p 5006:5006 gcr.io/world-takeout-test/portability-transfer
+ *  <li>docker run --rm -p 8082:8082 -p 5006:5006 gcr.io/<your-project-name>/portability-transfer
  * </ul>
  *
  * <ul>To run for prod environments:
@@ -55,6 +55,7 @@ repositories {
 
 dependencies {
     compile project(':portability-transfer')
+    compile project(':libraries:logging')
     compile project(':extensions:config:portability-config-yaml')
     // TODO: depend on these based on list in flag values.
     compile project(':extensions:data-transfer:portability-data-transfer-google')
@@ -62,6 +63,8 @@ dependencies {
     compile project(':extensions:data-transfer:portability-data-transfer-microsoft')
     compile project(':extensions:data-transfer:portability-data-transfer-flickr')
     compile project(':extensions:data-transfer:portability-data-transfer-rememberthemilk')
+    compile project(':extensions:data-transfer:portability-data-transfer-smugmug')
+    compile project(":extensions:security:portability-security-cleartext")
 }
 
 addCloudExtensionDependency(project)
@@ -82,6 +85,8 @@ task copyConfig(type: Copy) {
     into 'build/resources/main'
     from('../resources') {
         include 'config/common.yaml'
+        include 'config/retry/default.yaml'
+        include 'config/transfer.yaml'
     }
 }
 

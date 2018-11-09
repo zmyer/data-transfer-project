@@ -50,6 +50,7 @@ repositories {
 }
 
 def transportType = project.hasProperty('transportType') ? transportType : "jettyrest"
+def encryptionScheme = project.hasProperty('encryptionScheme') ? encryptionScheme : "jwe"
 def offlineData = project.hasProperty('offlineData') ? offlineData : "false"
 def demoDomain = project.hasProperty('appDomain') ? appDomain : "localhost"
 def appPort = project.hasProperty('appPort') ? appPort : "3000"
@@ -62,7 +63,7 @@ dependencies {
 
     compile project(':portability-api')
     compile project(":extensions:transport:portability-transport-${transportType}")
-    compile project(':portability-transfer')
+    compile project(':libraries:logging')
 
     compile project(':extensions:config:portability-config-yaml')
 
@@ -70,22 +71,27 @@ dependencies {
     compile project(':extensions:auth:portability-auth-flickr')
     compile project(':extensions:auth:portability-auth-google')
     compile project(':extensions:auth:portability-auth-instagram')
+    compile project(':extensions:auth:portability-auth-facebook')
     compile project(':extensions:auth:portability-auth-microsoft')
     compile project(':extensions:auth:portability-auth-rememberthemilk')
+    compile project(':extensions:auth:portability-auth-smugmug')
     compile project(':extensions:auth:portability-auth-twitter')
 
     compile project(':extensions:data-transfer:portability-data-transfer-flickr')
     compile project(':extensions:data-transfer:portability-data-transfer-google')
     compile project(':extensions:data-transfer:portability-data-transfer-instagram')
+    compile project(':extensions:data-transfer:portability-data-transfer-facebook')
     compile project(':extensions:data-transfer:portability-data-transfer-microsoft')
     compile project(':extensions:data-transfer:portability-data-transfer-rememberthemilk')
-
+    compile project(':extensions:data-transfer:portability-data-transfer-smugmug')
     compile project(':extensions:data-transfer:portability-data-transfer-twitter')
 
     if (offlineData == 'true') {
         compile project(':extensions:auth:portability-auth-offline-demo')
         compile project(':extensions:data-transfer:portability-data-transfer-offline-demo')
     }
+
+    compile project(":extensions:security:portability-security-${encryptionScheme}")
 
 }
 

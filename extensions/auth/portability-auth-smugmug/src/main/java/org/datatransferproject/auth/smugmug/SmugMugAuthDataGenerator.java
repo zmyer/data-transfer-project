@@ -31,36 +31,48 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
-/* SmugmugAuthDataGenerator used for obtaining auth credentials for the Smugmug API*/
+import static org.datatransferproject.types.common.PortabilityCommon.AuthProtocol;
+import static org.datatransferproject.types.common.PortabilityCommon.AuthProtocol.OAUTH_1;
+
+/*
+ * {@link AuthDataGenerator} to obtain auth credentials for the Smugmug API.
+ *
+ * Note: this is in the process of being deprecated in favor of OAuth1DataGenerator.
+ * <p>TODO(#553): Remove code/token exchange as this will be handled by frontends.
+ */
 public class SmugMugAuthDataGenerator implements AuthDataGenerator {
-  private final Logger logger = LoggerFactory.getLogger(SmugMugAuthDataGenerator.class);
+  private static final Logger logger = LoggerFactory.getLogger(SmugMugAuthDataGenerator.class);
+  private static final AuthProtocol AUTH_PROTOCOL = OAUTH_1;
   private final String perms;
   private final SmugMugOauthInterface smugMugOauthInterface;
 
   public SmugMugAuthDataGenerator(AppCredentials appCredentials, AuthMode authMode) {
+    // NB: once a user grants access to an application on SM, they have to manually revoke access
+    // before permissions can be updated.  E.g., if a user first grants "Read" permissions to an
+    // app, they have to revoke the app before being able to grant "Add" permissions.
     this.perms = authMode == AuthMode.IMPORT ? "Add" : "Read";
     this.smugMugOauthInterface =
         new SmugMugOauthInterface(appCredentials.getKey(), appCredentials.getSecret());
   }
 
   @Override
-  public AuthFlowConfiguration generateConfiguration(String callbackBaseUrl, String id) {
+  public AuthFlowConfiguration generateConfiguration(String callbackUrl, String id) {
     // Generate a request token and include that as initial auth data
     TokenSecretAuthData authData = null;
     try {
-      authData = smugMugOauthInterface.getRequestToken(callbackBaseUrl + "/callback/smugmug");
+      authData = smugMugOauthInterface.getRequestToken(callbackUrl);
     } catch (IOException e) {
       logger.warn("Couldnt get authData {}", e.getMessage());
       return null;
     }
 
     String url = smugMugOauthInterface.getAuthorizationUrl(authData, perms);
-    return new AuthFlowConfiguration(url, authData);
+    return new AuthFlowConfiguration(url, getTokenUrl(), AUTH_PROTOCOL, authData);
   }
 
   @Override
   public AuthData generateAuthData(
-      String callbackBaseUrl, String authCode, String id, AuthData initialAuthData, String extra) {
+      String callbackUrl, String authCode, String id, AuthData initialAuthData, String extra) {
 
     Preconditions.checkArgument(Strings.isNullOrEmpty(extra), "Extra data not expected");
     Preconditions.checkNotNull(

@@ -6,9 +6,12 @@
  * General questions and discussion: [dtp-discuss@googlegroups.com](mailto:dtp-discuss@googlegroups.com)
  * [Slack channel](https://portability.slack.com), email
    [portability-maintainers@googlegroups.com](mailto:portability-maintainers@googlegroups.com) for invitation
- * Proposed Office Hours for anyone interested, developers, participants, etc.: TBD, email [dtp-discuss@googlegroups.com](mailto:dtp-discuss@googlegroups.com) for the latest times
- * Weekly Skype call for maintainers, email [portability-maintainers@googlegroups.com](mailto:portability-maintainers@googlegroups.com)
-   for invitation
+ * Office Hours for anyone interested, developers, participants, etc.: 
+   * Times: Tuesday 2pm CST and Thursday 10am CST
+   
+   To attend:
+   1. Send email stating your desired topic to discuss to [dtp-discuss@googlegroups.com](mailto:dtp-discuss@googlegroups.com) 
+   1. You will receive a Google Hangout link (or let us know if you prefer another method of communication)
 
 ## Where to start
 
@@ -22,6 +25,10 @@
   
 ### Running the project
   * See the instructions below to run locally
+  
+### Start coding
+  * See the issues with label [good first issue](https://github.com/google/data-transfer-project/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+ 
 
 ## First Run/Setup
 
@@ -32,8 +39,8 @@ From the top level data-transfer-project directory:
  * Install Node: `nvm install node`
  * Install Angular: `npm install -g @angular/cli`
  * [Install Docker](https://docs.docker.com/install/)
- * Install the Angular CLI `./gradlew client:installLocalAngularCli`
- * In the `client/` directory, run `npm install`
+ * Install the Angular CLI `./gradlew client-rest:installLocalAngularCli`
+ * In the `client-rest/` directory, run `npm install`
 
 ### IntelliJ setup
 The following instructions work for IntelliJ IDEA version 2017.2.6.
@@ -98,7 +105,7 @@ If you get an error `error: duplicate class... final class AutoValue_...` it is 
 
 ## Misc updates
 There is a rest version of the client and demo-server in progress. While it is not complete yet and lacks some of the
-features in the http based client, it is still runnable and works for all services that implement oauth2.
+features in the http based client, it is still runnable and works for all services that implement OAuth2.
 
 The following runs the client-rest api
   * `cd client-rest`

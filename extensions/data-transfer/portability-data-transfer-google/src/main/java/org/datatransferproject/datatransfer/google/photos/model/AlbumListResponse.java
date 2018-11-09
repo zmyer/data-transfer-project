@@ -17,8 +17,10 @@
 package org.datatransferproject.datatransfer.google.photos.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import java.util.List;
 
+/**
+ * The response provided by the Google Photos API for an album query
+ */
 public class AlbumListResponse {
   @JsonProperty("albums")
   private GoogleAlbum[] albums;

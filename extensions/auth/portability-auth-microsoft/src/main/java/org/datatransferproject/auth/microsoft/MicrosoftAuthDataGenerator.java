@@ -22,6 +22,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
+import static org.datatransferproject.types.common.PortabilityCommon.AuthProtocol;
+import static org.datatransferproject.types.common.PortabilityCommon.AuthProtocol.OAUTH_2;
+
 /**
  * Provides configuration for conducting an OAuth flow against the Microsoft AD API. Returned tokens
  * can be used to make requests against the Microsoft Graph API.
@@ -29,8 +32,12 @@ import java.util.function.Supplier;
  * <p>The flow is a two-step process. First, the user is sent to an authorization page and is then
  * redirected to a address in this system with the authorization code. The second step takes the
  * authorization code and posts it against the AD API to obtain a token for querying the Graph API.
+ *
+ * Note: this is in the process of being deprecated in favor of OAuth2DataGenerator.
+ * <p>TODO(#553): Remove code/token exchange as this will be handled by frontends.
  */
 public class MicrosoftAuthDataGenerator implements AuthDataGenerator {
+  private static final AuthProtocol AUTHORIZATION_PROTOCOL = OAUTH_2;
   private static final String AUTHORIZATION_URL =
       "https://login.microsoftonline.com/common/oauth2/v2.0/authorize";
   private static final String TOKEN_URL =
@@ -40,23 +47,22 @@ public class MicrosoftAuthDataGenerator implements AuthDataGenerator {
   // These are READ/WRITE scopes
   private static final Map<String, List<String>> importAuthScopes =
       ImmutableMap.<String, List<String>>builder()
-          .put("mail", ImmutableList.of("user.read", "Mail.ReadWrite"))
-          .put("contacts", ImmutableList.of("user.read", "Contacts.ReadWrite"))
-          .put("calendar", ImmutableList.of("user.read", "Calendars.ReadWrite"))
+          .put("MAIL", ImmutableList.of("user.read", "Mail.ReadWrite"))
+          .put("CONTACTS", ImmutableList.of("user.read", "Contacts.ReadWrite"))
+          .put("CALENDAR", ImmutableList.of("user.read", "Calendars.ReadWrite"))
           .build();
 
   // The scopes necessary to export each supported data type.
   // These should contain READONLY permissions
   private static final Map<String, List<String>> exportAuthScopes =
       ImmutableMap.<String, List<String>>builder()
-          .put("mail", ImmutableList.of("user.read", "Mail.Read"))
-          .put("contacts", ImmutableList.of("user.read", "Contacts.Read"))
-          .put("calendar", ImmutableList.of("user.read", "Calendars.Read"))
+          .put("MAIL", ImmutableList.of("user.read", "Mail.Read"))
+          .put("CONTACTS", ImmutableList.of("user.read", "Contacts.Read"))
+          .put("CALENDAR", ImmutableList.of("user.read", "Calendars.Read"))
           // needed because offline exported as one drive files
-          .put("offline-data", ImmutableList.of("user.read", "Files.Read.All"))
+          .put("OFFLINE-DATA", ImmutableList.of("user.read", "Files.Read.All"))
           .build();
 
-  private final String redirectPath;
   private final Supplier<String> clientIdSupplier;
   private final Supplier<String> clientSecretSupplier;
   private final OkHttpClient httpClient;
@@ -65,10 +71,7 @@ public class MicrosoftAuthDataGenerator implements AuthDataGenerator {
 
   /**
    * Ctor.
-   *
-   * @param redirectPath the path part this generator is configured to request OAuth authentication
-   *     code responses be sent to
-   * @param clientIdSupplier The Application ID that the registration portal
+   *  @param clientIdSupplier The Application ID that the registration portal
    *     (apps.dev.microsoft.com) assigned the portability instance
    * @param clientSecretSupplier The application secret that was created in the app registration
    *     portal for the portability instance
@@ -77,17 +80,15 @@ public class MicrosoftAuthDataGenerator implements AuthDataGenerator {
    * @param mode the mode to create this authorization generator for
    */
   public MicrosoftAuthDataGenerator(
-      String redirectPath,
-      Supplier<String> clientIdSupplier,
-      Supplier<String> clientSecretSupplier,
-      OkHttpClient client,
-      ObjectMapper mapper,
-      String transferDataType,
-      AuthMode mode) {
+          Supplier<String> clientIdSupplier,
+          Supplier<String> clientSecretSupplier,
+          OkHttpClient client,
+          ObjectMapper mapper,
+          String transferDataType,
+          AuthMode mode) {
     Preconditions.checkArgument(
         !Strings.isNullOrEmpty(transferDataType) && mode != null,
         "A valid mode and transfer data type must be present");
-    this.redirectPath = redirectPath;
     this.clientIdSupplier = clientIdSupplier;
     this.clientSecretSupplier = clientSecretSupplier;
     httpClient = client;
@@ -98,17 +99,15 @@ public class MicrosoftAuthDataGenerator implements AuthDataGenerator {
             : importAuthScopes.get(transferDataType);
   }
 
-  public AuthFlowConfiguration generateConfiguration(String callbackBaseUrl, String id) {
+  public AuthFlowConfiguration generateConfiguration(String callbackUrl, String id) {
     // constructs a request for the Microsoft Graph authorization code.
-    String redirectUrl = callbackBaseUrl + redirectPath;
-    String queryPart = constructAuthQueryPart(redirectUrl, id, scopes);
-    return new AuthFlowConfiguration(AUTHORIZATION_URL + "?" + queryPart);
+    String queryPart = constructAuthQueryPart(callbackUrl, id, scopes);
+    return new AuthFlowConfiguration(AUTHORIZATION_URL + "?" + queryPart, AUTHORIZATION_PROTOCOL, getTokenUrl());
   }
 
   public TokenAuthData generateAuthData(
-      String callbackBaseUrl, String authCode, String id, AuthData initialAuthData, String extra) {
-    String redirectUrl = callbackBaseUrl + redirectPath;
-    String params = constructTokenParams(authCode, redirectUrl, "user.read", "Contacts.ReadWrite");
+      String callbackUrl, String authCode, String id, AuthData initialAuthData, String extra) {
+    String params = constructTokenParams(authCode, callbackUrl, "user.read", "Contacts.ReadWrite");
 
     Request.Builder tokenReqBuilder = new Request.Builder().url(TOKEN_URL);
     tokenReqBuilder.header("Content-Type", "application/x-www-form-urlencoded");

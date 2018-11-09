@@ -18,12 +18,17 @@ package org.datatransferproject.transfer;
 import static com.google.common.collect.MoreCollectors.onlyElement;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.AbstractScheduledService;
+import com.google.common.util.concurrent.AbstractScheduledService.Scheduler;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
-import java.io.IOException;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import org.datatransferproject.api.launcher.ExtensionContext;
 import org.datatransferproject.config.FlagBindingModule;
 import org.datatransferproject.security.AsymmetricKeyGenerator;
@@ -34,6 +39,8 @@ import org.datatransferproject.spi.cloud.storage.JobStore;
 import org.datatransferproject.spi.transfer.extension.TransferExtension;
 import org.datatransferproject.spi.transfer.provider.Exporter;
 import org.datatransferproject.spi.transfer.provider.Importer;
+import org.datatransferproject.spi.transfer.security.AuthDataDecryptService;
+import org.datatransferproject.spi.transfer.security.PublicKeySerializer;
 import org.datatransferproject.types.transfer.retry.RetryStrategyLibrary;
 
 final class WorkerModule extends FlagBindingModule {
@@ -41,6 +48,8 @@ final class WorkerModule extends FlagBindingModule {
   private final CloudExtension cloudExtension;
   private final ExtensionContext context;
   private final List<TransferExtension> transferExtensions;
+  private final Set<PublicKeySerializer> publicKeySerializers;
+  private final Set<AuthDataDecryptService> decryptServices;
   private final SymmetricKeyGenerator symmetricKeyGenerator;
   private final AsymmetricKeyGenerator asymmetricKeyGenerator;
 
@@ -48,21 +57,26 @@ final class WorkerModule extends FlagBindingModule {
       ExtensionContext context,
       CloudExtension cloudExtension,
       List<TransferExtension> transferExtensions,
+      Set<PublicKeySerializer> publicKeySerializers,
+      Set<AuthDataDecryptService> decryptServices,
       SymmetricKeyGenerator symmetricKeyGenerator,
       AsymmetricKeyGenerator asymmetricKeyGenerator) {
     this.cloudExtension = cloudExtension;
     this.context = context;
     this.transferExtensions = transferExtensions;
+    this.publicKeySerializers = publicKeySerializers;
+    this.decryptServices = decryptServices;
     this.symmetricKeyGenerator = symmetricKeyGenerator;
     this.asymmetricKeyGenerator = asymmetricKeyGenerator;
   }
 
-  private static TransferExtension findTransferExtension(
+  @VisibleForTesting
+  static TransferExtension findTransferExtension(
       ImmutableList<TransferExtension> transferExtensions, String service) {
     try {
       return transferExtensions
           .stream()
-          .filter(ext -> ext.getServiceId().equals(service))
+          .filter(ext -> ext.getServiceId().toLowerCase().equals(service.toLowerCase()))
           .collect(onlyElement());
     } catch (IllegalArgumentException e) {
       throw new IllegalStateException(
@@ -122,9 +136,28 @@ final class WorkerModule extends FlagBindingModule {
 
   @Provides
   @Singleton
-  RetryStrategyLibrary getRetryStrategyLibrary() throws IOException {
+  Set<PublicKeySerializer> getPublicKeySerializers() {
+    return ImmutableSet.copyOf(publicKeySerializers);
+  }
+
+  @Provides
+  @Singleton
+  Set<AuthDataDecryptService> getDecryptServices() {
+    return ImmutableSet.copyOf(decryptServices);
+  }
+
+  @Provides
+  @Singleton
+  RetryStrategyLibrary getRetryStrategyLibrary() {
     return context.getSetting("retryLibrary", null);
   }
 
-
+  @Provides
+  @Singleton
+  Scheduler getScheduler() {
+    // TODO: parse a Duration from the settings
+    long interval = context.getSetting("pollInterval", 2000); // Default: poll every 2s
+    return AbstractScheduledService.Scheduler
+        .newFixedDelaySchedule(0, interval, TimeUnit.MILLISECONDS);
+  }
 }

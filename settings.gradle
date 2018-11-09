@@ -1,8 +1,8 @@
 rootProject.name = 'org.datatransferproject'
 
-include ':portability-types-client', ':portability-types-transfer'
+include ':portability-types-client', ':portability-types-transfer', ':portability-types-common'
 include ':portability-spi-service', ':portability-spi-api', ':portability-spi-cloud', ':portability-spi-transfer'
-include ':libraries:security', ':libraries:config', ':libraries:transfer'
+include ':libraries:security', ':libraries:config', ':libraries:auth', ':libraries:transfer', ':libraries:logging'
 include ':portability-test-utilities'
 include ':portability-api-launcher'
 
@@ -22,7 +22,10 @@ include ':portability-api', ':portability-transfer', ':portability-bootstrap-vm'
 include ':extensions:cloud:portability-cloud-local', ':extensions:cloud:portability-cloud-google', ':extensions:cloud:portability-cloud-microsoft'
 
 // Transport Extensions
-include ':extensions:transport:portability-transport-jdk',':extensions:transport:portability-transport-jettyrest'
+include ':extensions:transport:portability-transport-jettyrest'
+
+// Security extensions
+include ':extensions:security:portability-security-cleartext', ':extensions:security:portability-security-jwe'
 
 // Service Integrations - Auth and Transfer Extensions
 // Flickr
@@ -46,6 +49,9 @@ include ':extensions:data-transfer:portability-data-transfer-smugmug'
 // Twitter
 include ':extensions:auth:portability-auth-twitter'
 include ':extensions:data-transfer:portability-data-transfer-twitter'
+// Facebook
+include ':extensions:auth:portability-auth-facebook'
+include ':extensions:data-transfer:portability-data-transfer-facebook'
 
 include ':extensions:auth:portability-auth-offline-demo'
 include ':extensions:data-transfer:portability-data-transfer-offline-demo'

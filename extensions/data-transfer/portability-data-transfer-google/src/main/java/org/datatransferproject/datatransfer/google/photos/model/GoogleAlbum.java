@@ -18,27 +18,15 @@ package org.datatransferproject.datatransfer.google.photos.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+/**
+ * Class representing an album as returned by the Google Photos API.
+ */
 public class GoogleAlbum {
   @JsonProperty("id")
   private String id;
 
   @JsonProperty("title")
   private String title;
-
-  @JsonProperty("productUrl")
-  private String productUrl;
-
-  @JsonProperty("isWriteable")
-  private boolean isWriteable;
-
-  @JsonProperty("shareInfo")
-  private ShareInfo shareInfo;
-
-  @JsonProperty("totalMediaItems")
-  private String totalMediaItems;
-
-  @JsonProperty("coverPhotoBaseUrl")
-  private String coverPhotoBaseUrl;
 
   public String getId() { return id; }
 
@@ -47,6 +35,4 @@ public class GoogleAlbum {
   public void setId(String id) { this.id = id; }
 
   public void setTitle(String title) { this.title = title; }
-
-  public void setProductUrl(String productUrl) { this.productUrl = productUrl; }
 }

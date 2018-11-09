@@ -33,27 +33,38 @@ import org.scribe.model.Verifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.datatransferproject.types.common.PortabilityCommon.AuthProtocol;
+import static org.datatransferproject.types.common.PortabilityCommon.AuthProtocol.OAUTH_1;
+
+/*
+ * {@link AuthDataGenerator} to obtain auth credentials for the Flickr API.
+ *
+ * Note: this is in the process of being deprecated in favor of OAuth1DataGenerator.
+ * <p>TODO(#553): Remove code/token exchange as this will be handled by frontends.
+ */
 public class FlickrAuthDataGenerator implements AuthDataGenerator {
+  private static final Logger logger = LoggerFactory.getLogger(FlickrAuthDataGenerator.class);
+  private static final AuthProtocol AUTH_PROTOCOL = OAUTH_1;
+
   private final Flickr flickr;
-  private final static Logger logger = LoggerFactory.getLogger(FlickrAuthDataGenerator.class);
 
   FlickrAuthDataGenerator(AppCredentials appCredentials){
     flickr = new Flickr(appCredentials.getKey(), appCredentials.getSecret(), new REST());
   }
 
   @Override
-  public AuthFlowConfiguration generateConfiguration(String callbackBaseUrl, String id) {
+  public AuthFlowConfiguration generateConfiguration(String callbackUrl, String id) {
     AuthInterface authInterface = flickr.getAuthInterface();
-    Token token = authInterface.getRequestToken(callbackBaseUrl + "/callback/flickr");
+    Token token = authInterface.getRequestToken(callbackUrl);
     String url =
             authInterface.getAuthorizationUrl(
                     token, Permission.WRITE);
-    return new AuthFlowConfiguration(url, toAuthData(token));
+    return new AuthFlowConfiguration(url, getTokenUrl(), AUTH_PROTOCOL, toAuthData(token));
   }
 
   @Override
   public AuthData generateAuthData(
-      String callbackBaseUrl, String authCode, String id, AuthData initialAuthData, String extra) {
+      String callbackUrl, String authCode, String id, AuthData initialAuthData, String extra) {
     Preconditions.checkArgument(Strings.isNullOrEmpty(extra), "Extra data not expected");
     Preconditions.checkNotNull(initialAuthData, "Earlier auth data not expected for Flickr flow");
     AuthInterface authInterface = flickr.getAuthInterface();

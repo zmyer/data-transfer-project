@@ -53,7 +53,8 @@ repositories {
 
 dependencies {
     compile project(':portability-api')
-    compile project(':extensions:transport:portability-transport-jdk')
+    compile project(':libraries:logging')
+    compile project(':extensions:transport:portability-transport-jettyrest')
     compile project(':extensions:config:portability-config-yaml')
     // TODO: depend on these based on list in flag values.
     compile project(':extensions:auth:portability-auth-microsoft')
@@ -61,6 +62,8 @@ dependencies {
     compile project(':extensions:auth:portability-auth-flickr')
     compile project(':extensions:auth:portability-auth-rememberthemilk')
     compile project(':extensions:auth:portability-auth-instagram')
+    compile project(':extensions:auth:portability-auth-smugmug')
+    compile project(':extensions:auth:portability-auth-facebook')
 }
 
 
